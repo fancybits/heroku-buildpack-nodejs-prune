@@ -1,0 +1,27 @@
+#!/bin/bash
+
+BUILD_DIR="$1"
+
+cd "$BUILD_DIR" || exit 1
+
+# Get initial size in bytes if node_modules exists
+initial_size=0
+if [ -d "node_modules" ]; then
+    initial_size=$(du -s --bytes node_modules | cut -f1)
+fi
+
+echo "-----> Pruning yarn dev dependencies"
+
+yarn install --frozen-lockfile --ignore-engines --ignore-scripts --prefer-offline 2>&1
+
+# Get final size and calculate difference
+final_size=$(du -s --bytes node_modules | cut -f1)
+size_diff=$((final_size - initial_size))
+
+if [ $size_diff -gt 0 ]; then
+    echo "       node_modules size increased by $(numfmt --to=iec-i --suffix=B $size_diff)"
+elif [ $size_diff -lt 0 ]; then
+    echo "       node_modules size reduced by $(numfmt --to=iec-i --suffix=B $((-size_diff)))"
+else
+    echo "       node_modules size unchanged"
+fi
